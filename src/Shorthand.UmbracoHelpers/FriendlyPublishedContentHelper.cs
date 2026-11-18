@@ -1,4 +1,6 @@
+#if !UMBRACO_19
 using Examine;
+#endif
 using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Configuration.Models;
@@ -22,13 +24,19 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
     private readonly IPublishedUrlProvider _publishedUrlProvider;
     private readonly IUmbracoContextAccessor _umbracoContextAccessor;
     private readonly ISiteDomainMapper _siteDomainMapper;
+#if UMBRACO_17
+    private readonly IFileService _templateService;
+#else
     private readonly ITemplateService _templateService;
+#endif
     private readonly IOptions<WebRoutingSettings> _webRoutingSettings;
     private readonly IContentTypeService _contentTypeService;
     private readonly IPublishedValueFallback _publishedValueFallback;
     private readonly IDocumentUrlService _documentUrlService;
     private readonly IUserService _userService;
+#if !UMBRACO_19
     private readonly IExamineManager _examineManager;
+#endif
 
     public FriendlyPublishedContentHelper(
             IVariationContextAccessor variationContextAccessor,
@@ -41,13 +49,21 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
             IPublishedUrlProvider publishedUrlProvider,
             IUmbracoContextAccessor umbracoContextAccessor,
             ISiteDomainMapper siteDomainMapper,
+#if UMBRACO_17
+            IFileService templateService,
+#else
             ITemplateService templateService,
+#endif
             IOptions<WebRoutingSettings> webRoutingSettings,
             IContentTypeService contentTypeService,
             IPublishedValueFallback publishedValueFallback,
             IDocumentUrlService documentUrlService,
+#if !UMBRACO_19
             IUserService userService,
             IExamineManager examineManager) {
+#else
+            IUserService userService) {
+#endif
         _variationContextAccessor = variationContextAccessor;
         _domainCache = domainCache;
         _documentNavigationQueryService = documentNavigationQueryService;
@@ -64,7 +80,9 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
         _publishedValueFallback = publishedValueFallback;
         _documentUrlService = documentUrlService;
         _userService = userService;
+#if !UMBRACO_19
         _examineManager = examineManager;
+#endif
     }
 
     public IPublishedContent? CreateModel(
@@ -74,7 +92,11 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
     public string Name(
         IPublishedContent content,
         string? culture = null)
+#if UMBRACO_17
+        => content.Name(_variationContextAccessor, culture);
+#else
         => ((IPublishedElement)content).Name(_variationContextAccessor, culture);
+#endif
 
     public string? UrlSegment(
         IPublishedContent content,
@@ -89,7 +111,11 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
     public DateTime CultureDate(
         IPublishedContent content,
         string? culture = null)
+#if UMBRACO_17
+        => content.CultureDate(_variationContextAccessor, culture);
+#else
         => ((IPublishedElement)content).CultureDate(_variationContextAccessor, culture);
+#endif
 
     public string GetTemplateAlias(IPublishedContent content)
         => content.GetTemplateAlias(_templateService);
@@ -350,22 +376,32 @@ public class FriendlyPublishedContentHelper : IFriendlyPublishedContentHelper {
 
     public string? CreatorName(IPublishedContent content)
         =>
+#if UMBRACO_17
+        content.CreatorName(_userService);
+#else
         ((IPublishedElement)content).CreatorName(_userService);
+#endif
 
     public string? WriterName(IPublishedContent content)
         =>
+#if UMBRACO_17
+        content.WriterName(_userService);
+#else
         ((IPublishedElement)content).WriterName(_userService);
+#endif
 
     public string? GetCultureFromDomains(
         IPublishedContent content,
         Uri? current = null)
         => content.GetCultureFromDomains(_umbracoContextAccessor, _siteDomainMapper, _domainCache, _documentNavigationQueryService, GetPublishedStatusFilteringService(content), current);
 
+#if !UMBRACO_19
     public IEnumerable<PublishedSearchResult> SearchDescendants(IPublishedContent content, string term, string? indexName = null)
         => content.SearchDescendants(_examineManager, _umbracoContextAccessor, term, indexName);
 
     public IEnumerable<PublishedSearchResult> SearchChildren(IPublishedContent content, string term, string? indexName = null)
         => content.SearchChildren(_examineManager, _umbracoContextAccessor, term, indexName);
+#endif
 
     private INavigationQueryService GetNavigationQueryService(IPublishedContent content) =>
         content.ContentType.ItemType switch {

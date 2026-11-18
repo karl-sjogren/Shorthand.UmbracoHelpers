@@ -257,9 +257,11 @@ public interface IFriendlyPublishedContentHelper {
         IPublishedContent content,
         Uri? current = null);
 
+#if !UMBRACO_19
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedContentExtensions.SearchDescendants(IPublishedContent, string, string)"/>
     IEnumerable<PublishedSearchResult> SearchDescendants(IPublishedContent content, string term, string? indexName = null);
 
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedContentExtensions.SearchChildren(IPublishedContent, string, string)"/>
     IEnumerable<PublishedSearchResult> SearchChildren(IPublishedContent content, string term, string? indexName = null);
+#endif
 }

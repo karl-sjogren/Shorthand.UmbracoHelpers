@@ -1,6 +1,9 @@
+#if !UMBRACO_19
 using Examine;
-using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Core;
+#endif
+using Microsoft.Extensions.DependencyInjection;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Models.Membership;
 using Umbraco.Cms.Core.Models.PublishedContent;
 using Umbraco.Cms.Core.Services;
@@ -10,6 +13,51 @@ using Umbraco.Cms.Core.Web;
 namespace Shorthand.UmbracoHelpers.Tests;
 
 public class FriendlyPublishedContentHelperTests {
+#if UMBRACO_17
+#pragma warning disable CS0618 // The Umbraco 17 extension methods still use IFileService.
+#endif
+    [Fact]
+    public void TemplateOperationsUseInjectedTemplateService() {
+        var services = FriendlyHelperTestServices.Create();
+#if UMBRACO_17
+        var templates = A.Fake<IFileService>();
+#else
+        var templates = A.Fake<ITemplateService>();
+#endif
+        var template = A.Fake<ITemplate>();
+        var content = A.Fake<IPublishedContent>();
+        A.CallTo(() => content.TemplateId).Returns(42);
+        A.CallTo(() => template.Id).Returns(42);
+        A.CallTo(() => template.Alias).Returns("article");
+#if UMBRACO_17
+        A.CallTo(() => templates.GetTemplate(42)).Returns(template);
+        A.CallTo(() => templates.GetTemplate("article")).Returns(template);
+#else
+        A.CallTo(() => templates.GetAsync(42)).Returns(Task.FromResult<ITemplate?>(template));
+        A.CallTo(() => templates.GetAsync("article")).Returns(Task.FromResult<ITemplate?>(template));
+#endif
+        services.AddSingleton(templates);
+        services.AddFriendlyHelpers();
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var helper = scope.ServiceProvider.GetRequiredService<IFriendlyPublishedContentHelper>();
+
+        helper.GetTemplateAlias(content).ShouldBe("article");
+        helper.IsAllowedTemplate(content, "article").ShouldBeTrue();
+        helper.IsAllowedTemplate(content, true, true, "article").ShouldBeTrue();
+#if UMBRACO_17
+        A.CallTo(() => templates.GetTemplate(42)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => templates.GetTemplate("article")).MustHaveHappenedTwiceExactly();
+#else
+        A.CallTo(() => templates.GetAsync(42)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => templates.GetAsync("article")).MustHaveHappenedTwiceExactly();
+#endif
+    }
+#if UMBRACO_17
+#pragma warning restore CS0618
+#endif
+
+#if !UMBRACO_19
     [Theory]
     [InlineData(true, null)]
     [InlineData(true, "CustomIndex")]
@@ -37,6 +85,7 @@ public class FriendlyPublishedContentHelperTests {
         A.CallTo(() => examine.TryGetIndex(indexName ?? Constants.UmbracoIndexes.ExternalIndexName, out index))
             .MustHaveHappenedOnceExactly();
     }
+#endif
 
     [Theory]
     [InlineData(PublishedItemType.Content)]

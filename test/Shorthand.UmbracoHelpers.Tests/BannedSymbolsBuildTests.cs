@@ -1,9 +1,18 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Xml.Linq;
 
 namespace Shorthand.UmbracoHelpers.Tests;
 
 public class BannedSymbolsBuildTests {
+#if UMBRACO_17
+    private const string _umbracoMajor = "17";
+#elif UMBRACO_18
+    private const string _umbracoMajor = "18";
+#else
+    private const string _umbracoMajor = "19";
+#endif
+
     [Fact]
     public async Task ImportedTargetsEnforceBansUnlessDisabledAsync() {
         // Arrange
@@ -33,17 +42,46 @@ public class BannedSymbolsBuildTests {
 
         try {
             // Act
+            var packageVersion = $"{_umbracoMajor}.0.0-buildtest.{Guid.NewGuid():N}";
             var result = await RunDotnetAsync(
                 "pack", project, "--configuration", "Debug", "--no-restore", "--nologo", "-v:q",
-                "-p:PackageVersion=1.0.0-buildtest", "-o", outputDirectory);
+                $"-p:UmbracoMajorVersion={_umbracoMajor}", $"-p:PackageVersion={packageVersion}", "-o", outputDirectory);
 
             // Assert
             result.ExitCode.ShouldBe(0, result.Output);
 
-            using var stream = File.OpenRead(Path.Combine(outputDirectory, "Shorthand.UmbracoHelpers.1.0.0-buildtest.nupkg"));
+            using var stream = File.OpenRead(Path.Combine(outputDirectory, $"Shorthand.UmbracoHelpers.{packageVersion}.nupkg"));
             using var archive = new ZipArchive(stream);
             archive.GetEntry("buildTransitive/Shorthand.UmbracoHelpers.targets").ShouldNotBeNull();
             archive.GetEntry("buildTransitive/BannedSymbols.Shorthand.UmbracoHelpers.txt").ShouldNotBeNull();
+            var nuspec = archive.GetEntry("Shorthand.UmbracoHelpers.nuspec").ShouldNotBeNull();
+            await using var nuspecStream = await nuspec.OpenAsync(TestCancellationToken);
+            var document = await XDocument.LoadAsync(nuspecStream, LoadOptions.None, TestCancellationToken);
+            XNamespace ns = document.Root!.Name.Namespace;
+            var metadata = document.Root.Element(ns + "metadata").ShouldNotBeNull();
+            metadata.Element(ns + "id")!.Value.ShouldBe("Shorthand.UmbracoHelpers");
+            metadata.Element(ns + "version")!.Value.ShouldBe(packageVersion);
+            var targetFramework = _umbracoMajor == "19" ? "net11.0" : "net10.0";
+            var group = metadata.Element(ns + "dependencies")!.Elements(ns + "group")
+                .Single(item => (string?)item.Attribute("targetFramework") == targetFramework);
+            var dependency = group.Elements(ns + "dependency")
+                .Single(item => (string?)item.Attribute("id") == "Umbraco.Cms.Web.Common");
+            var expectedRange = _umbracoMajor switch {
+                "17" => "[17.0.0, 18.0.0)",
+                "18" => "[18.0.0, 19.0.0)",
+                _ => "[19.0.0-rc1, 19.0.0)",
+            };
+            ((string?)dependency.Attribute("version")).ShouldBe(expectedRange);
+
+            var matchingVersion = _umbracoMajor == "19" ? "19.0.0-rc1" : $"{_umbracoMajor}.0.0";
+            var matching = await RestoreConsumerAsync(outputDirectory, packageVersion, matchingVersion, targetFramework);
+            matching.ExitCode.ShouldBe(0, matching.Output);
+            var otherVersion = _umbracoMajor == "17" ? "18.0.0" : "17.0.0";
+            var mismatched = await RestoreConsumerAsync(outputDirectory, packageVersion, otherVersion, targetFramework);
+            mismatched.ExitCode.ShouldNotBe(0, mismatched.Output);
+            (mismatched.Output.Contains("NU1605", StringComparison.Ordinal) ||
+                mismatched.Output.Contains("NU1608", StringComparison.Ordinal) ||
+                mismatched.Output.Contains("NU1107", StringComparison.Ordinal)).ShouldBeTrue(mismatched.Output);
         } finally {
             Directory.Delete(outputDirectory, recursive: true);
         }
@@ -58,9 +96,52 @@ public class BannedSymbolsBuildTests {
         result.Output.ShouldContain("FriendlyUrlHelperExtensions");
     }
 
+    private static async Task<(int ExitCode, string Output)> RestoreConsumerAsync(
+        string packageDirectory, string packageVersion, string umbracoVersion, string targetFramework) {
+        var directory = Path.Combine(packageDirectory, $"consumer-{umbracoVersion}");
+        Directory.CreateDirectory(directory);
+        var project = Path.Combine(directory, "Consumer.csproj");
+        await File.WriteAllTextAsync(project, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>{targetFramework}</TargetFramework>
+                <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Shorthand.UmbracoHelpers" Version="{packageVersion}" />
+                <PackageReference Include="Umbraco.Cms.Web.Common" Version="{umbracoVersion}" />
+              </ItemGroup>
+            </Project>
+            """, TestCancellationToken);
+        await File.WriteAllTextAsync(
+            Path.Combine(directory, "Consumer.cs"),
+            "using Shorthand.UmbracoHelpers; public class Consumer { public IFriendlyPublishedContentHelper Helper { get; set; } }",
+            TestCancellationToken);
+        var config = Path.Combine(directory, "NuGet.Config");
+        await File.WriteAllTextAsync(config, $"""
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="local" value="{System.Security.SecurityElement.Escape(packageDirectory)}" />
+                <add key="nuget" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """, TestCancellationToken);
+        var restore = await RunDotnetAsync(
+            "restore", project, "--nologo", "-v:q",
+            "--configfile", config);
+        if(restore.ExitCode != 0) {
+            return restore;
+        }
+
+        return await RunDotnetAsync("build", project, "--no-restore", "--nologo", "-v:q");
+    }
+
     private static async Task<(int ExitCode, string Output)> BuildAsync(string project, bool disabled) {
         return await RunDotnetAsync(
             "build", project, "--nologo", "-v:q",
+            $"-p:UmbracoMajorVersion={_umbracoMajor}",
             $"-p:DisableShorthandUmbracoHelpersBannedSymbols={disabled.ToString().ToLowerInvariant()}");
     }
 
