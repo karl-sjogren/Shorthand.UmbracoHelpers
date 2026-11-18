@@ -6,10 +6,10 @@ Umbraco CMS 17 and 18, with an experimental build for the Umbraco 19 release
 candidate:
 
 | Helper package | Umbraco CMS | .NET |
-| --- | --- | --- |
-| 17.x | 17.x | 10 |
-| 18.x | 18.x | 10 |
-| 19.0.0-rc1 (build only) | 19.0.0-rc1 | 11 |
+| -------------- | ----------- | ---- |
+| 17.x           | 17.x        | 10   |
+| 18.x           | 18.x        | 10   |
+| 19.0.0-rc1     | 19.0.0-rc1  | 11   |
 
 ## What is included
 
