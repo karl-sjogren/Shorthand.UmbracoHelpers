@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Shorthand.UmbracoHelpers.Benchmarks/Shorthand.UmbracoHelpers.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Shorthand.UmbracoHelpers/Shorthand.UmbracoHelpers.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Shorthand.UmbracoHelpers.Tests/Shorthand.UmbracoHelpers.Tests.csproj" />
+    <Project Path="test/Shorthand.UmbracoHelpers.TestHelpers/Shorthand.UmbracoHelpers.TestHelpers.csproj" />
+  </Folder>
+</Solution>
