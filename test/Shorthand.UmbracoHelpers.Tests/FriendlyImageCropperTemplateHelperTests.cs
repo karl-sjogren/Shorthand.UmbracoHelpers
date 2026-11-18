@@ -23,8 +23,7 @@ public class FriendlyImageCropperTemplateHelperTests {
             generator,
             A.Fake<IPublishedValueFallback>(),
             A.Fake<IPublishedUrlProvider>(),
-            serializer,
-            NullLogger<FriendlyImageCropperTemplateHelper>.Instance);
+            serializer);
 
         // Act & assert
         helper.GetCropUrl("/image.jpg", width: 120, height: 80, imageCropperValue: "{}").ShouldBe("generated");
@@ -61,8 +60,7 @@ public class FriendlyImageCropperTemplateHelperTests {
             generator,
             fallback,
             urlProvider,
-            serializer,
-            NullLogger<FriendlyImageCropperTemplateHelper>.Instance);
+            serializer);
 
         // Act & assert
         helper.GetCropUrl(media, width: 120, cacheBuster: false, urlMode: UrlMode.Absolute).ShouldBe("generated");

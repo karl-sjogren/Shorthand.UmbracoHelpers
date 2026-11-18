@@ -14,19 +14,16 @@ public class FriendlyImageCropperTemplateHelper : IFriendlyImageCropperTemplateH
     private readonly IPublishedValueFallback _publishedValueFallback;
     private readonly IPublishedUrlProvider _publishedUrlProvider;
     private readonly IJsonSerializer _jsonSerializer;
-    private readonly ILogger<FriendlyImageCropperTemplateHelper> _logger;
 
     public FriendlyImageCropperTemplateHelper(
             IImageUrlGenerator imageUrlGenerator,
             IPublishedValueFallback publishedValueFallback,
             IPublishedUrlProvider publishedUrlProvider,
-            IJsonSerializer jsonSerializer,
-            ILogger<FriendlyImageCropperTemplateHelper> logger) {
+            IJsonSerializer jsonSerializer) {
         _imageUrlGenerator = imageUrlGenerator;
         _publishedValueFallback = publishedValueFallback;
         _publishedUrlProvider = publishedUrlProvider;
         _jsonSerializer = jsonSerializer;
-        _logger = logger;
     }
 
     public string? GetCropUrl(
@@ -196,7 +193,10 @@ public class FriendlyImageCropperTemplateHelper : IFriendlyImageCropperTemplateH
         try {
             return _jsonSerializer.Deserialize<ImageCropperValue>(json) ?? new ImageCropperValue();
         } catch(Exception ex) {
-            _logger.LogError(ex, "Could not parse the json string: {Json}", json);
+            // Not a great way to do it, but I want to avoid taking a dependency on
+            // Microsoft.Extensions.Logging.Abstractions for the package and this is
+            // how Umbraco handles it.
+            StaticApplicationLogging.Logger.LogError(ex, "Could not parse the json string: {Json}", json);
             return new ImageCropperValue();
         }
     }
