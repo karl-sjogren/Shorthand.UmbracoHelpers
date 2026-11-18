@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO.Abstractions;
 using System.IO.Compression;
 
 namespace Shorthand.UmbracoHelpers.Tests;
@@ -8,8 +7,7 @@ public class BannedSymbolsBuildTests {
     [Fact]
     public async Task ImportedTargetsEnforceBansUnlessDisabledAsync() {
         // Arrange
-        var path = new FileSystem().Path;
-        var project = path.GetFullPath(path.Combine(
+        var project = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "BuildFixtures", "Direct", "Direct.csproj"));
 
         // Act
@@ -27,13 +25,11 @@ public class BannedSymbolsBuildTests {
     [Fact]
     public async Task PackageContainsTransitiveBuildAssetsAsync() {
         // Arrange
-        var fileSystem = new FileSystem();
-        var path = fileSystem.Path;
-        var project = path.GetFullPath(path.Combine(
+        var project = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src",
             "Shorthand.UmbracoHelpers", "Shorthand.UmbracoHelpers.csproj"));
-        var outputDirectory = path.Combine(path.GetTempPath(), $"ShorthandUmbracoHelpersPackTest-{Guid.NewGuid():N}");
-        fileSystem.Directory.CreateDirectory(outputDirectory);
+        var outputDirectory = Path.Combine(Path.GetTempPath(), $"ShorthandUmbracoHelpersPackTest-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(outputDirectory);
 
         try {
             // Act
@@ -44,12 +40,12 @@ public class BannedSymbolsBuildTests {
             // Assert
             result.ExitCode.ShouldBe(0, result.Output);
 
-            using var stream = fileSystem.File.OpenRead(path.Combine(outputDirectory, "Shorthand.UmbracoHelpers.1.0.0-buildtest.nupkg"));
+            using var stream = File.OpenRead(Path.Combine(outputDirectory, "Shorthand.UmbracoHelpers.1.0.0-buildtest.nupkg"));
             using var archive = new ZipArchive(stream);
             archive.GetEntry("buildTransitive/Shorthand.UmbracoHelpers.targets").ShouldNotBeNull();
             archive.GetEntry("buildTransitive/BannedSymbols.Shorthand.UmbracoHelpers.txt").ShouldNotBeNull();
         } finally {
-            fileSystem.Directory.Delete(outputDirectory, recursive: true);
+            Directory.Delete(outputDirectory, recursive: true);
         }
     }
 

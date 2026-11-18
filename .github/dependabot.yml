@@ -50,9 +50,6 @@ updates:
       fakeiteasy:
         patterns:
           - "FakeItEasy*"
-      testable-io:
-        patterns:
-          - "TestableIO*"
 
   - package-ecosystem: "github-actions"
     directory: "/"

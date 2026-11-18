@@ -8,7 +8,6 @@
   </ImportGroup>
 
   <ItemGroup>
-    <Using Include="Microsoft.Extensions.Logging.Abstractions"/>
     <Using Include="System.Diagnostics.CodeAnalysis"/>
   </ItemGroup>
 
@@ -23,7 +22,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
   </ItemGroup>
 
   <ItemGroup>
