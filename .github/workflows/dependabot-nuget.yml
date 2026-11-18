@@ -15,8 +15,12 @@ env:
 jobs:
 
   net-test:
-    name: .NET tests
+    name: .NET tests (Umbraco ${{ matrix.umbraco }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        umbraco: [17, 18, 19]
 
     steps:
     - name: Checkout sources
@@ -28,18 +32,22 @@ jobs:
         global-json-file: global.json
 
     - name: Restore NuGet packages
-      run: dotnet restore --verbosity minimal
+      run: dotnet restore --verbosity minimal -p:UmbracoMajorVersion=${{ matrix.umbraco }}
 
     - name: Build .NET solution
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore -p:UmbracoMajorVersion=${{ matrix.umbraco }}
 
     - name: Run .NET tests
-      run: dotnet test --no-build --configuration Release --no-progress
+      run: dotnet test --no-build --configuration Release --no-progress -p:UmbracoMajorVersion=${{ matrix.umbraco }}
 
   net-build:
-    name: .NET build
+    name: .NET build (Umbraco ${{ matrix.umbraco }})
     runs-on: ubuntu-latest
     needs: [ net-test ]
+    strategy:
+      fail-fast: false
+      matrix:
+        umbraco: [17, 18, 19]
 
     steps:
     - name: Checkout sources
@@ -51,8 +59,7 @@ jobs:
         global-json-file: global.json
 
     - name: Restore NuGet packages
-      run: dotnet restore --verbosity minimal
+      run: dotnet restore --verbosity minimal -p:UmbracoMajorVersion=${{ matrix.umbraco }}
 
     - name: Publish application
-      run: dotnet publish --configuration Release --output ./artifacts
-      working-directory: ./
+      run: dotnet pack src/Shorthand.UmbracoHelpers/Shorthand.UmbracoHelpers.csproj --configuration Release --no-restore --output artifacts -p:UmbracoMajorVersion=${{ matrix.umbraco }}

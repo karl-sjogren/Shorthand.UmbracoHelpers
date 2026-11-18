@@ -1,7 +1,15 @@
-# Helper classes for Umbraco 18
+# Helper classes for Umbraco 17, 18 and 19
 
 Shorthand.UmbracoHelpers provides dependency-injection-friendly wrappers around
-Umbraco's friendly extension methods. It targets .NET 10 and Umbraco CMS 18.
+Umbraco's friendly extension methods. Separate package major versions support
+Umbraco CMS 17 and 18, with an experimental build for the Umbraco 19 release
+candidate:
+
+| Helper package | Umbraco CMS | .NET |
+| --- | --- | --- |
+| 17.x | 17.x | 10 |
+| 18.x | 18.x | 10 |
+| 19.0.0-rc1 (build only) | 19.0.0-rc1 | 11 |
 
 ## What is included
 
@@ -29,11 +37,25 @@ and test.
 
 ## Installation and use
 
-Add the package to an Umbraco 18 project:
+Select the package major matching the Umbraco installation. Once the 17.x
+package is published, for Umbraco 17:
+
+```shell
+dotnet add package Shorthand.UmbracoHelpers --version 17.0.0
+```
+
+For Umbraco 18:
 
 ```shell
 dotnet add package Shorthand.UmbracoHelpers
 ```
+
+Without a version, the latest package may target a different Umbraco major.
+Use the latest available 17.x or 18.x version as appropriate.
+The minimum dependency versions establish compatibility, not a security
+recommendation; use a patched Umbraco release and review its dependencies.
+The 19.x preview is not automatically published; its API and dependency range
+must be revalidated against the stable Umbraco 19 release.
 
 The included Umbraco composer registers all four helpers automatically. You
 can also register them explicitly:
@@ -57,6 +79,8 @@ public class ArticleService(IFriendlyPublishedContentHelper contentHelper)
 
 The helper methods correspond to Umbraco's friendly extension methods; their
 interfaces document the underlying Umbraco API with `inheritdoc` references.
+The 19 preview omits `SearchChildren` and `SearchDescendants`, which are not
+present in Umbraco 19.0.0-rc1.
 
 ## BannedApiAnalyzer
 
@@ -101,9 +125,35 @@ dotnet build -p:DisableShorthandUmbracoHelpersBannedSymbols=true
 
 ## Development
 
-Build and run the test suite from the repository root:
+All variants are maintained on `develop`. Umbraco 18 is the default when no
+property is supplied. Restore separately when switching variants, then use the
+same property for every command:
 
 ```shell
-dotnet build Shorthand.UmbracoHelpers.slnx
-dotnet test Shorthand.UmbracoHelpers.slnx
+dotnet restore Shorthand.UmbracoHelpers.slnx -p:UmbracoMajorVersion=17
+dotnet build Shorthand.UmbracoHelpers.slnx --no-restore -p:UmbracoMajorVersion=17
+dotnet test Shorthand.UmbracoHelpers.slnx --no-build -p:UmbracoMajorVersion=17
+dotnet pack src\Shorthand.UmbracoHelpers\Shorthand.UmbracoHelpers.csproj --no-restore -p:UmbracoMajorVersion=17
 ```
+
+Replace `17` with `18` or `19` for the other variants. Don't run variants
+concurrently in the same checkout: their intermediate output is shared.
+The package dependency ranges are `[17.0.0, 18.0.0)`,
+`[18.0.0, 19.0.0)` and, for the 19 preview, `[19.0.0-rc1, 19.0.0)`.
+
+## Releasing
+
+Maintain the `Version` values in `Directory.Build.props` independently.
+After the release commit reaches `main`, create and push only the matching
+stable version tag, for example `17.0.0` or `18.0.2`. The tag must match the
+configured version and point to a commit on `main`. CI tests all variants and
+publishes only the tagged package, then creates the GitHub release. Protect
+release tags and configure NuGet trusted publishing for the tag-triggered
+workflow. Package versions cannot be reused.
+
+For the 19 stable release, first verify its APIs and behavior, update the
+dependency range to `[19.0.0, 20.0.0)` and the package version to `19.0.0`,
+and enable 19.x tags in the release workflow.
+
+A separate support branch is not needed while the variants remain manageable
+in shared source; reconsider one if their APIs diverge substantially.
