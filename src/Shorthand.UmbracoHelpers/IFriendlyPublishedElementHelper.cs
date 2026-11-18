@@ -4,6 +4,7 @@ using Umbraco.Cms.Core.Models.PublishedContent;
 namespace Shorthand.UmbracoHelpers;
 
 public interface IFriendlyPublishedElementHelper {
+#if !UMBRACO_17
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.Name(IPublishedElement, string)"/>
     string Name(
         IPublishedElement content,
@@ -13,6 +14,7 @@ public interface IFriendlyPublishedElementHelper {
     DateTime CultureDate(
         IPublishedElement content,
         string? culture = null);
+#endif
 
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.Value(IPublishedElement, string, string, string, Fallback, object)"/>
     object? Value(
@@ -35,11 +37,13 @@ public interface IFriendlyPublishedElementHelper {
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.IsVisible(IPublishedElement)"/>
     bool IsVisible(IPublishedElement content);
 
+#if !UMBRACO_17
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.CreatorName(IPublishedElement)"/>
     string? CreatorName(IPublishedElement content);
 
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.WriterName(IPublishedElement)"/>
     string? WriterName(IPublishedElement content);
+#endif
 
     /// <inheritdoc cref="Umbraco.Extensions.FriendlyPublishedElementExtensions.ValueFor{TModel,TValue}(TModel, Expression{Func{TModel,TValue}}, string, string, Fallback, TValue)"/>
     TValue? ValueFor<TModel, TValue>(

@@ -6,18 +6,23 @@ namespace Shorthand.UmbracoHelpers;
 
 public class FriendlyPublishedElementHelper : IFriendlyPublishedElementHelper {
     private readonly IPublishedValueFallback _publishedValueFallback;
+#if !UMBRACO_17
     private readonly IVariationContextAccessor _variationContextAccessor;
     private readonly IUserService _userService;
+#endif
 
     public FriendlyPublishedElementHelper(
             IPublishedValueFallback publishedValueFallback,
             IVariationContextAccessor variationContextAccessor,
             IUserService userService) {
         _publishedValueFallback = publishedValueFallback;
+#if !UMBRACO_17
         _variationContextAccessor = variationContextAccessor;
         _userService = userService;
+#endif
     }
 
+#if !UMBRACO_17
     public string Name(
         IPublishedElement content,
         string? culture = null)
@@ -27,6 +32,7 @@ public class FriendlyPublishedElementHelper : IFriendlyPublishedElementHelper {
         IPublishedElement content,
         string? culture = null)
         => content.CultureDate(_variationContextAccessor, culture);
+#endif
 
     public object? Value(
         IPublishedElement content,
@@ -49,6 +55,7 @@ public class FriendlyPublishedElementHelper : IFriendlyPublishedElementHelper {
     public bool IsVisible(IPublishedElement content)
         => content.IsVisible(_publishedValueFallback);
 
+#if !UMBRACO_17
     public string? CreatorName(IPublishedElement content)
         =>
         content.CreatorName(_userService);
@@ -56,6 +63,7 @@ public class FriendlyPublishedElementHelper : IFriendlyPublishedElementHelper {
     public string? WriterName(IPublishedElement content)
         =>
         content.WriterName(_userService);
+#endif
 
     public TValue? ValueFor<TModel, TValue>(
         TModel model,

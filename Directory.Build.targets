@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="ValidateUmbracoMajorVersion" BeforeTargets="CollectPackageReferences;PrepareForBuild">
+    <Error Condition="'$(UmbracoMajorVersion)' != '17' and '$(UmbracoMajorVersion)' != '18' and '$(UmbracoMajorVersion)' != '19'"
+           Text="UmbracoMajorVersion must be 17, 18 or 19." />
+  </Target>
+</Project>

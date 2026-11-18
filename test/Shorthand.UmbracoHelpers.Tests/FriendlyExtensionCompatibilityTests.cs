@@ -34,16 +34,26 @@ public class FriendlyExtensionCompatibilityTests {
         var parameters = method.GetParameters().Select(parameter =>
             (parameter.IsIn ? "in " : parameter.IsOut ? "out " : "") +
             (parameter.IsDefined(typeof(ParamArrayAttribute), false) ? "params " : "") +
-            $"{DescribeType(parameter.ParameterType)}{DescribeNullability(nullability.Create(parameter))} {parameter.Name}" +
+            $"{DescribeType(parameter.ParameterType)}{DescribeParameterNullability(method, parameter, nullability)} {parameter.Name}" +
             (parameter.HasDefaultValue ? $" = {FormatDefault(parameter.DefaultValue)}" : parameter.IsOptional ? " optional" : ""));
 
         return $"{DescribeType(method.ReturnType)}{DescribeNullability(nullability.Create(method.ReturnParameter))} {method.Name}`{genericArguments.Length}" +
             $"({string.Join(", ", parameters)}) [{string.Join("; ", constraints)}]";
     }
 
-    private static string DescribeNullability(NullabilityInfo info)
-        => $"?{info.ReadState}<{string.Join(",", info.GenericTypeArguments.Select(DescribeNullability))}>" +
-            (info.ElementType is null ? "" : $"[{DescribeNullability(info.ElementType)}]");
+    private static string DescribeParameterNullability(MethodInfo method, ParameterInfo parameter, NullabilityInfoContext context) {
+        var normalizeValueFor = false;
+#if UMBRACO_17
+        // The 17 assembly and current compiler encode the same unconstrained TValue differently here.
+        normalizeValueFor = method.Name == "ValueFor" && parameter.Name == "property";
+#endif
+        return DescribeNullability(context.Create(parameter), normalizeValueFor);
+    }
+
+    private static string DescribeNullability(NullabilityInfo info, bool normalizeValueFor = false)
+        => $"?{(normalizeValueFor && info.Type.IsGenericParameter && info.Type.GenericParameterPosition == 1 ? "Unconstrained" : info.ReadState.ToString())}" +
+            $"<{string.Join(",", info.GenericTypeArguments.Select(argument => DescribeNullability(argument, normalizeValueFor)))}>" +
+            (info.ElementType is null ? "" : $"[{DescribeNullability(info.ElementType, normalizeValueFor)}]");
 
     private static string FormatDefault(object? value)
         => value is null ? "null" : Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null";

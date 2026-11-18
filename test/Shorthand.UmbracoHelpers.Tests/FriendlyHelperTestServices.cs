@@ -1,4 +1,6 @@
+#if !UMBRACO_19
 using Examine;
+#endif
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -32,12 +34,18 @@ internal static class FriendlyHelperTestServices {
         services.AddSingleton(A.Fake<IPublishedModelFactory>());
         services.AddSingleton(A.Fake<IUmbracoContextAccessor>());
         services.AddSingleton(A.Fake<ISiteDomainMapper>());
+#if UMBRACO_17
+        services.AddSingleton(A.Fake<IFileService>());
+#else
         services.AddSingleton(A.Fake<ITemplateService>());
+#endif
         services.AddSingleton<IOptions<WebRoutingSettings>>(Options.Create(new WebRoutingSettings()));
         services.AddSingleton(A.Fake<IContentTypeService>());
         services.AddSingleton(A.Fake<IDocumentUrlService>());
         services.AddSingleton(A.Fake<IUserService>());
+#if !UMBRACO_19
         services.AddSingleton(A.Fake<IExamineManager>());
+#endif
         services.AddSingleton<IDataProtectionProvider>(new EphemeralDataProtectionProvider());
 
         return services;
